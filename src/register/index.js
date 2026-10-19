@@ -25,6 +25,7 @@ async function register(config) {
       appVer       : android.appVer || '',
       fisAuthToken : installation.authToken.token,
       fid          : installation.fid,
+      checkin      : android.checkin,
     };
 
     const subscription = await registerGCM(android.senderId, gcmConfig);

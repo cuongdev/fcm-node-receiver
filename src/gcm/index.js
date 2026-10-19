@@ -25,14 +25,15 @@ module.exports = {
 };
 
 async function register(appId, config) {
-  const options = await checkIn();
+  const checkinConfig = config && config.checkin;
+  const options = await checkIn(undefined, undefined, checkinConfig);
   const credentials = await doRegister(options, appId, config);
   return credentials;
 }
 
-async function checkIn(androidId, securityToken) {
+async function checkIn(androidId, securityToken, checkinConfig) {
   await loadProtoFile();
-  const buffer = getCheckinRequest(androidId, securityToken);
+  const buffer = getCheckinRequest(androidId, securityToken, checkinConfig);
   const body = await request({
     url     : CHECKIN_URL,
     method  : 'POST',
@@ -119,43 +120,55 @@ async function loadProtoFile() {
   return root;
 }
 
-function getCheckinRequest(androidId, securityToken) {
+function getCheckinRequest(androidId, securityToken, checkinConfig) {
   const AndroidCheckinRequest = root.lookupType(
     'checkin_proto.AndroidCheckinRequest'
   );
   AndroidCheckinResponse = root.lookupType(
     'checkin_proto.AndroidCheckinResponse'
   );
+  const device = checkinConfig || {};
+  const isAndroid = device.type === 1 || device.build;
+
+  const checkin = isAndroid ? {
+    type  : 1,
+    build : Object.assign({
+      fingerprint        : 'google/panther/panther:14/UP1A.231005.007/10754064:user/release-keys',
+      hardware           : 'tensor',
+      brand              : 'google',
+      radio              : '',
+      bootloader         : 'slider-1.0-10589371',
+      clientId           : 'android-google',
+      time               : Date.now(),
+      packageVersionCode : 234431044,
+      device             : 'panther',
+      sdkVersion         : 34,
+      model              : 'Pixel 7',
+      manufacturer       : 'Google',
+      product            : 'panther',
+      otaInstalled       : false,
+    }, device.build || {}),
+    cellOperator : device.cellOperator || '',
+    simOperator  : device.simOperator  || '',
+  } : {
+    type        : 3,
+    chromeBuild : Object.assign({
+      platform      : 2,
+      chromeVersion : '63.0.3234.0',
+      channel       : 1,
+    }, device.chromeBuild || {}),
+  };
+
   const payload = {
     userSerialNumber : 0,
-    checkin          : {
-      type  : 1,  // DEVICE_ANDROID_OS (not 3/Chrome)
-      build : {
-        fingerprint        : 'google/panther/panther:14/UP1A.231005.007/10754064:user/release-keys',
-        hardware           : 'tensor',
-        brand              : 'google',
-        radio              : '',
-        bootloader         : 'slider-1.0-10589371',
-        clientId           : 'android-google',
-        time               : Date.now(),
-        packageVersionCode : 234431044,
-        device             : 'panther',
-        sdkVersion         : 34,
-        model              : 'Pixel 7',
-        manufacturer       : 'Google',
-        product            : 'panther',
-        otaInstalled       : false,
-      },
-      cellOperator : '45201',
-      simOperator  : '45201',
-    },
+    checkin,
     version       : 3,
     id            : androidId ? Long.fromString(androidId) : undefined,
     securityToken : securityToken
       ? Long.fromString(securityToken, true)
       : undefined,
-    locale        : 'vi_VN',
-    timeZone      : 'Asia/Ho_Chi_Minh',
+    locale        : device.locale   || (isAndroid ? 'en_US' : undefined),
+    timeZone      : device.timeZone || (isAndroid ? 'UTC'   : undefined),
     fragment      : 0,
   };
   const errMsg = AndroidCheckinRequest.verify(payload);
