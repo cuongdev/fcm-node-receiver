@@ -74,9 +74,30 @@ message AndroidCheckinProto {
   // This will only be populated for Chrome builds/ChromeOS devices
   optional checkin_proto.ChromeBuildProto chrome_build = 13;
 
+  // Build characteristics for Android devices
+  optional AndroidBuildProto build = 14;
+
   // Note: Some of the Android specific optional fields were skipped to limit
   // the protobuf definition.
-  // Next 14
+  // Next 15
+}
+
+// Build characteristics unique to Android devices
+message AndroidBuildProto {
+  optional string fingerprint = 1;  // eg "google/panther/panther:14/UP1A..."
+  optional string hardware = 2;     // eg "tensor"
+  optional string brand = 3;        // eg "google"
+  optional string radio = 4;        // Radio firmware version
+  optional string bootloader = 5;   // Bootloader version
+  optional string client_id = 6;    // eg "android-google"
+  optional int64 time = 7;          // Build timestamp
+  optional int32 package_version_code = 8;  // GMS version code
+  optional string device = 9;       // eg "panther"
+  optional int32 sdk_version = 10;  // eg 34
+  optional string model = 11;       // eg "Pixel 7"
+  optional string manufacturer = 12; // eg "Google"
+  optional string product = 13;     // eg "panther"
+  optional bool ota_installed = 14;
 }
 
 // enum values correspond to the type of device.
